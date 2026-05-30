@@ -1,0 +1,14 @@
+# Зависимости, сборка и локальные конфиги фронтенда
+112-devices/node_modules/
+112-devices/dist/
+112-devices/.env
+112-devices/.env.local
+
+# Зависимости, сборка и приватные ключи бэкенда
+helpdesk-backend/node_modules/
+helpdesk-backend/dist/
+helpdesk-backend/.env
+
+# Системный мусор редакторов
+.DS_Store
+.vscode/

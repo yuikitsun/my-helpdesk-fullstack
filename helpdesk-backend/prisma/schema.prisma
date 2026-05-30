@@ -1,0 +1,32 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Пользователь (соответствует твоей форме регистрации)
+model User {
+  id        Int      @id @default(autoincrement())
+  firstName String
+  lastName  String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+// Девайс (один в один как твой интерфейс Device в TS)
+model Device {
+  id        String   @id // Будем генерировать строки вроде "DEV-001" на фронте или бэке
+  name      String
+  owner     String   // Имя текущего владельца
+  status    String   // 'Active' | 'In Maintenance' | 'Offline'
+  type      String   // Тип устройства
+  cpu       String?  // Процессор (необязательное поле)
+  ram       String?  // Оперативная память (необязательное)
+  location  String
+  notes     String?  // Заметки (необязательное)
+  createdAt DateTime @default(now())
+}
