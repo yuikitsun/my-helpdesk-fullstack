@@ -35,18 +35,6 @@ function App() {
           }
         />
 
-        {/* Страница Devices (пока можно перенаправлять на тот же дашборд или сделать отдельную) */}
-        <Route
-          path="/devices"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout>
-                <DashboardPage />
-              </DashboardLayout>
-            </ProtectedRoute>
-          }
-        />
-
         {/* Временная заглушка для Tickets */}
         <Route
           path="/tickets"

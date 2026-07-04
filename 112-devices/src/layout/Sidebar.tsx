@@ -4,7 +4,6 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 // Теперь у каждого элемента ЕСТЬ чёткий path и нормальная иконка-компонент
 const navItems = [
     { label: "Dashboard", icon: Server, path: "/dashboard" },
-    { label: "Devices", icon: Laptop, path: "/devices" },
     { label: "Tickets", icon: Bell, path: "/tickets" },
     { label: "Users", icon: Smartphone, path: "/users" },
 ];

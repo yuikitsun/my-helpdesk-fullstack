@@ -92,22 +92,69 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
     }
 });
 
+// --- GET ALL USERS ---
+app.get('/api/users', checkAuth, async (req: AuthRequest, res: Response) => {
+    try {
+        const users = await prisma.user.findMany({
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                _count: {
+                    select: { devices: true }
+                }
+            },
+            orderBy: {
+                firstName: 'asc' // Исправлено: в модели User нет поля name, сортируем по firstName
+            }
+        });
+
+        res.json(users);
+    } catch (error) {
+        console.error("Prisma error fetching users:", error);
+        res.status(500).json({ error: 'Server error while fetching users.' });
+    }
+});
+
+// --- GET DEVICES ---
 // --- GET DEVICES ---
 app.get('/api/devices', checkAuth, async (req: AuthRequest, res: Response) => {
     try {
-        const devices = await prisma.device.findMany();
-        const formattedDevices = devices.map(device => ({
-            id: device.id,
-            name: device.name,
-            owner: device.owner,
-            status: device.status,
-            type: device.type,
-            location: device.location,
-            notes: device.notes,
-            specs: device.cpu || device.ram ? { cpu: device.cpu || "", ram: device.ram || "" } : undefined
-        }));
+        // Подтягиваем девайсы вместе с данными пользователя, которому они назначены
+        const devices = await prisma.device.findMany({
+            include: {
+                assignedTo: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                        email: true
+                    }
+                }
+            }
+        });
+
+        const formattedDevices = devices.map(device => {
+            // Если девайс привязан к userId, склеиваем имя. Если нет — пишем "Not Assigned" (на складе)
+            const ownerName = device.assignedTo
+                ? `${device.assignedTo.firstName} ${device.assignedTo.lastName}`
+                : "Not Assigned";
+
+            return {
+                id: device.id,
+                name: device.title,
+                owner: ownerName, // Фронтенд получит красивое имя сотрудника из БД
+                status: device.status,
+                type: device.type,
+                location: device.location || "",
+                notes: device.notes || "",
+                specs: device.cpu || device.ram ? { cpu: device.cpu || "", ram: device.ram || "" } : undefined
+            };
+        });
+
         res.json(formattedDevices);
     } catch (error) {
+        console.error("Error fetching devices:", error);
         res.status(500).json({ message: "Server error while fetching devices." });
     }
 });
@@ -115,44 +162,54 @@ app.get('/api/devices', checkAuth, async (req: AuthRequest, res: Response) => {
 // --- ADD DEVICE ---
 app.post('/api/devices', checkAuth, async (req: AuthRequest, res: Response) => {
     try {
-        const { name, owner, status, type, specs, location, notes } = req.body;
+        // Из body нам больше НЕ нужно поле owner для записи в саму модель Device
+        const { name, status, type, specs, location, notes, userId } = req.body;
 
-        // 1. Валидация обязательных полей
-        if (!name || !owner) {
-            return res.status(400).json({ message: "Device name and owner are required fields." });
-        }
+        const generatedId = `DEV-${Math.floor(1000 + Math.random() * 9000)}`;
+        const parsedUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
 
-        // 2. Автоматическая генерация ID в формате DEV-001, DEV-002 и т.д.
-        const count = await prisma.device.count();
-        const nextNumber = count + 1;
-        // Паддинг до 3 символов (1 -> "001", 12 -> "012", 284 -> "284")
-        const generatedId = `DEV-${String(nextNumber).padStart(3, '0')}`;
-
-        // 3. Создание записи в базе
+        // Создаем запись в базе данных строго по схеме из schema.prisma
         const newDevice = await prisma.device.create({
             data: {
-                id: generatedId, // Передаем сгенерированный ID в базу
-                name,
-                owner,
-                status: status || "Active",
+                id: generatedId,
+                title: name,
                 type,
-                // Безопасно вытаскиваем процессоры и память из объекта specs
-                cpu: specs && typeof specs === 'object' ? specs.cpu || null : null,
-                ram: specs && typeof specs === 'object' ? specs.ram || null : null,
-                // Если location пустой, пишем дефолтную строку, так как в схеме поле обязательное!
-                location: location && location.trim() ? location : "Office A",
+                status,
+                cpu: specs?.cpu || null,
+                ram: specs?.ram || null,
+                location: location || null,
                 notes: notes || null,
+                userId: (parsedUserId && !isNaN(parsedUserId)) ? parsedUserId : null
             },
+            // Сразу подтягиваем инфо о юзере, чтобы вернуть правильный формат на фронт
+            include: {
+                assignedTo: {
+                    select: {
+                        firstName: true,
+                        lastName: true
+                    }
+                }
+            }
         });
 
-        return res.status(201).json(newDevice);
-    } catch (error: any) {
-        // Обязательно смотрим лог в терминале бэкенда, если что-то пойдет не так
-        console.error("❌ Detailed Prisma error:", error);
-        return res.status(500).json({
-            message: "Server error while adding device.",
-            error: error.message
+        // Формируем ответ, который ожидает фронтенд
+        const displayOwner = newDevice.assignedTo
+            ? `${newDevice.assignedTo.firstName} ${newDevice.assignedTo.lastName}`
+            : "Not Assigned";
+
+        res.status(201).json({
+            id: newDevice.id,
+            name: newDevice.title,
+            owner: displayOwner,
+            status: newDevice.status,
+            type: newDevice.type,
+            location: newDevice.location,
+            notes: newDevice.notes,
+            specs: newDevice.cpu || newDevice.ram ? { cpu: newDevice.cpu || "", ram: newDevice.ram || "" } : undefined
         });
+    } catch (error) {
+        console.error("Prisma error creating device:", error);
+        res.status(500).json({ error: 'Server error while adding device.' });
     }
 });
 

@@ -17,7 +17,7 @@ export function DashboardStats({ devices, loading }: DashboardStatsProps) {
 
     const stats = [
         {
-            title: "Total Devices",
+            title: "Total Assets",
             value: String(totalDevices),
             subtext: "Total registered assets",
             icon: Layers,
@@ -25,7 +25,7 @@ export function DashboardStats({ devices, loading }: DashboardStatsProps) {
             iconBg: "bg-blue-50",
         },
         {
-            title: "Active Now",
+            title: "Active Assets",
             value: String(activeDevices),
             subtext: `${activePercentage}% online`,
             icon: CheckCircle2,
@@ -41,7 +41,7 @@ export function DashboardStats({ devices, loading }: DashboardStatsProps) {
             iconBg: "bg-orange-50",
         },
         {
-            title: "Offline Devices",
+            title: "Offline Assets",
             value: String(offlineDevices),
             subtext: offlineDevices > 0 ? "Need attention" : "All clear",
             icon: MonitorX,

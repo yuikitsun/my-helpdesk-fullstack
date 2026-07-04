@@ -7,7 +7,6 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-    // Стейт открыт/закрыт сайдбар
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);

@@ -1,6 +1,7 @@
 import { User } from "../types/auth";
 
 const API_URL = 'http://localhost:5000/api/auth';
+const BASE_API_URL = 'http://localhost:5000/api'; // Базовый URL для остальных эндпоинтов
 
 export const authService = {
     register: async (data: User) => {
@@ -47,5 +48,28 @@ export const authService = {
     // Метод для удобного логаута (очистки токена)
     logout: () => {
         localStorage.removeItem("token");
+    },
+
+    // --- НОВЫЙ МЕТОД ДЛЯ ПОЛУЧЕНИЯ СПИСКА ПОЛЬЗОВАТЕЛЕЙ ---
+    getUsers: async () => {
+        // Достаем сохраненный токен
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(`${BASE_API_URL}/users`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                // Передаем токен в заголовке Authorization, чтобы пройти проверку checkAuth на бэке
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to fetch users');
+        }
+
+        return result; // Возвращает массив пользователей [{ id, name, email }, ...]
     }
 };

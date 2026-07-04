@@ -1,0 +1,25 @@
+{
+  "name": "helpdesk-full-stack",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start:frontend": "npm run dev --prefix 112-devices",
+    "start:backend": "npm run dev --prefix helpdesk-backend",
+    "dev": "concurrently \"npm run start:backend\" \"npm run start:frontend\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yuikitsun/my-helpdesk-fullstack.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yuikitsun/my-helpdesk-fullstack/issues"
+  },
+  "homepage": "https://github.com/yuikitsun/my-helpdesk-fullstack#readme",
+  "devDependencies": {
+    "concurrently": "^10.0.0"
+  }
+}

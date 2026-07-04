@@ -1,3 +1,5 @@
+import { User } from "./auth";
+
 export interface IDevice {
     id: string;      // *"DEV-001"
     name: string;
@@ -10,4 +12,6 @@ export interface IDevice {
     };
     location: string;
     notes?: string;
+    userId?: number;
+    assignedTo?: User;
 }
