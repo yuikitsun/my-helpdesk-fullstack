@@ -1,11 +1,25 @@
 import { Bell, Search } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { getInitials } from "../lib/utils"; // Проверь путь до твоего utils.ts
 
 interface HeaderProps {
     toggleSidebar: () => void;
 }
 
+const pageTitles: Record<string, { title: string; subtitle: string }> = {
+    "/dashboard": { title: "Device Inventory", subtitle: "Manage and monitor all IT assets" },
+    "/tickets": { title: "Tickets", subtitle: "Track and resolve support requests" },
+    "/users": { title: "Users", subtitle: "Manage user accounts and access" },
+    "/admin/pending-users": { title: "Pending Users", subtitle: "Review and approve employee registration requests" },
+};
+
 export function Header({ toggleSidebar }: HeaderProps) {
+    const location = useLocation();
+    const { title, subtitle } = pageTitles[location.pathname] || {
+        title: "Device Inventory",
+        subtitle: "Manage and monitor all IT assets",
+    };
+
     // Достаем имя, сохраненное при логине, или берем дефолтное
     const userFullName = localStorage.getItem("userFullName") || "Admin";
     const initials = getInitials(userFullName);
@@ -14,8 +28,8 @@ export function Header({ toggleSidebar }: HeaderProps) {
         <header className="flex items-center justify-between border-b border-slate-200 px-6 py-5 bg-white">
             <div className="flex items-center gap-4">
                 <div>
-                    <h1 className="text-l text-slate-950 tracking-tight leading-tight">Device Inventory</h1>
-                    <p className="text-sm text-slate-500 font-medium">Manage and monitor all IT assets</p>
+                    <h1 className="text-l text-slate-950 tracking-tight leading-tight">{title}</h1>
+                    <p className="text-sm text-slate-500 font-medium">{subtitle}</p>
                 </div>
             </div>
 

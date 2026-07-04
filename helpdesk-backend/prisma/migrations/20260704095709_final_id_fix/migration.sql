@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "approvedAt" TIMESTAMP(3),
+ADD COLUMN     "approvedBy" INTEGER,
+ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN     "role" TEXT NOT NULL DEFAULT 'employee',
+ADD COLUMN     "status" TEXT NOT NULL DEFAULT 'pending';

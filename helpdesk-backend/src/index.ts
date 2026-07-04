@@ -1,3 +1,6 @@
+import path from 'path';
+import dotenv from 'dotenv';
+dotenv.config({ path: path.resolve(__dirname, '.env') }); // ищем .env рядом с этим файлом, а не в cwd
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
@@ -7,7 +10,10 @@ import { PrismaClient } from '@prisma/client';
 const app = express();
 const prisma = new PrismaClient();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_key_helpdesk_123';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET is not set in environment variables.');
+}
 
 app.use(cors());
 app.use(express.json());
@@ -32,6 +38,22 @@ const checkAuth = (req: AuthRequest, res: Response, next: NextFunction): void =>
     }
 };
 
+// --- ROLE MIDDLEWARE ---
+function requireRole(...roles: string[]) {
+    return async (req: AuthRequest, res: Response, next: NextFunction) => {
+        if (!req.userId) {
+            res.status(401).json({ message: "Not authenticated." });
+            return;
+        }
+        const user = await prisma.user.findUnique({ where: { id: req.userId } });
+        if (!user || !roles.includes(user.role)) {
+            res.status(403).json({ message: "Insufficient permissions." });
+            return;
+        }
+        next();
+    };
+}
+
 // --- REGISTER ---
 app.post('/api/auth/register', async (req: Request, res: Response) => {
     try {
@@ -51,10 +73,17 @@ app.post('/api/auth/register', async (req: Request, res: Response) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         await prisma.user.create({
-            data: { firstName, lastName, email, password: hashedPassword },
+            data: {
+                firstName,
+                lastName,
+                email,
+                password: hashedPassword,
+                role: 'employee',
+                status: 'pending',
+            },
         });
 
-        res.status(201).json({ message: "Registration successful!" });
+        res.status(201).json({ message: "Registration submitted. Awaiting admin approval." });
     } catch (error) {
         res.status(500).json({ message: "Server error during registration." });
     }
@@ -77,14 +106,28 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
             return;
         }
 
-        const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
+        if (user.status === 'pending') {
+            res.status(403).json({ message: "Your account is awaiting admin approval." });
+            return;
+        }
+        if (user.status === 'rejected') {
+            res.status(403).json({ message: "Access denied for this account." });
+            return;
+        }
+
+        const token = jwt.sign(
+            { userId: user.id, role: user.role },
+            JWT_SECRET,
+            { expiresIn: '30d' }
+        );
 
         res.json({
             message: "Login successful.",
             token,
             user: {
                 email: user.email,
-                fullName: `${user.firstName} ${user.lastName}`
+                fullName: `${user.firstName} ${user.lastName}`,
+                role: user.role,
             }
         });
     } catch (error) {
@@ -92,8 +135,8 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
     }
 });
 
-// --- GET ALL USERS ---
-app.get('/api/users', checkAuth, async (req: AuthRequest, res: Response) => {
+// --- GET ALL USERS (только admin / super_admin) ---
+app.get('/api/users', checkAuth, requireRole('super_admin', 'admin'), async (req: AuthRequest, res: Response) => {
     try {
         const users = await prisma.user.findMany({
             select: {
@@ -101,12 +144,14 @@ app.get('/api/users', checkAuth, async (req: AuthRequest, res: Response) => {
                 firstName: true,
                 lastName: true,
                 email: true,
+                role: true,
+                status: true,
                 _count: {
                     select: { devices: true }
                 }
             },
             orderBy: {
-                firstName: 'asc' // Исправлено: в модели User нет поля name, сортируем по firstName
+                firstName: 'asc'
             }
         });
 
@@ -117,7 +162,75 @@ app.get('/api/users', checkAuth, async (req: AuthRequest, res: Response) => {
     }
 });
 
-// --- GET DEVICES ---
+// --- GET PENDING USERS (заявки на регистрацию) ---
+app.get('/api/admin/pending-users', checkAuth, requireRole('super_admin', 'admin'), async (req: AuthRequest, res: Response) => {
+    try {
+        const pending = await prisma.user.findMany({
+            where: { status: 'pending' },
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                createdAt: true,
+            },
+            orderBy: { createdAt: 'asc' },
+        });
+        res.json(pending);
+    } catch (error) {
+        console.error("Prisma error fetching pending users:", error);
+        res.status(500).json({ message: "Server error fetching pending users." });
+    }
+});
+
+// --- APPROVE USER ---
+app.post('/api/admin/approve/:id', checkAuth, requireRole('super_admin', 'admin'), async (req: AuthRequest, res: Response) => {
+    try {
+        const targetId = Number(req.params.id);
+        if (Number.isNaN(targetId)) {
+            res.status(400).json({ message: "Invalid user id." });
+            return;
+        }
+
+        const user = await prisma.user.update({
+            where: { id: targetId },
+            data: {
+                status: 'active',
+                approvedBy: req.userId,
+                approvedAt: new Date(),
+            },
+            select: { id: true, email: true, status: true },
+        });
+
+        res.json(user);
+    } catch (error) {
+        console.error("Prisma error approving user:", error);
+        res.status(500).json({ message: "Server error approving user." });
+    }
+});
+
+// --- REJECT USER ---
+app.post('/api/admin/reject/:id', checkAuth, requireRole('super_admin', 'admin'), async (req: AuthRequest, res: Response) => {
+    try {
+        const targetId = Number(req.params.id);
+        if (Number.isNaN(targetId)) {
+            res.status(400).json({ message: "Invalid user id." });
+            return;
+        }
+
+        const user = await prisma.user.update({
+            where: { id: targetId },
+            data: { status: 'rejected' },
+            select: { id: true, email: true, status: true },
+        });
+
+        res.json(user);
+    } catch (error) {
+        console.error("Prisma error rejecting user:", error);
+        res.status(500).json({ message: "Server error rejecting user." });
+    }
+});
+
 // --- GET DEVICES ---
 app.get('/api/devices', checkAuth, async (req: AuthRequest, res: Response) => {
     try {

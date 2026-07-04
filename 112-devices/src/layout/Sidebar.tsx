@@ -1,7 +1,8 @@
-import { Server, Laptop, Bell, Smartphone, LogOut } from "lucide-react";
+import { Server, Bell, Smartphone, LogOut, Clock } from "lucide-react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { authService } from "../services/authService";
 
-// Теперь у каждого элемента ЕСТЬ чёткий path и нормальная иконка-компонент
 const navItems = [
     { label: "Dashboard", icon: Server, path: "/dashboard" },
     { label: "Tickets", icon: Bell, path: "/tickets" },
@@ -12,9 +13,38 @@ interface AppSidebarProps {
     isOpen: boolean;
 }
 
+function getUserRole(): string | null {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload.role || null;
+    } catch {
+        return null;
+    }
+}
+
 export function AppSidebar({ isOpen }: AppSidebarProps) {
     const navigate = useNavigate();
     const location = useLocation();
+    const role = getUserRole();
+    const isAdmin = role === 'super_admin' || role === 'admin';
+    const [pendingCount, setPendingCount] = useState(0);
+
+    useEffect(() => {
+        if (!isAdmin) return;
+
+        async function loadCount() {
+            try {
+                const pending = await authService.getPendingUsers();
+                setPendingCount(pending.length);
+            } catch {
+                // тихо игнорируем — счётчик не критичен для работы страницы
+            }
+        }
+
+        loadCount();
+    }, [isAdmin]);
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -38,7 +68,7 @@ export function AppSidebar({ isOpen }: AppSidebarProps) {
                     </div>
                 </div>
 
-                {/* Навигация — теперь чистая, без лишних проверок типов */}
+                {/* Навигация */}
                 <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
                     {navItems.map((item, index) => {
                         const isActive = location.pathname === item.path;
@@ -46,7 +76,7 @@ export function AppSidebar({ isOpen }: AppSidebarProps) {
                         return (
                             <Link
                                 key={index}
-                                to={item.path} // Теперь TS уверен, что тут строка, и не ругается!
+                                to={item.path}
                                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 ${isActive
                                     ? "bg-blue-50 text-blue-600"
                                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
@@ -57,6 +87,26 @@ export function AppSidebar({ isOpen }: AppSidebarProps) {
                             </Link>
                         );
                     })}
+
+                    {isAdmin && (
+                        <Link
+                            to="/admin/pending-users"
+                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 ${location.pathname === "/admin/pending-users"
+                                ? "bg-blue-50 text-blue-600"
+                                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                }`}
+                        >
+                            <span className="flex items-center gap-3">
+                                <Clock className={`size-4 ${location.pathname === "/admin/pending-users" ? "text-blue-600" : "text-slate-400"}`} />
+                                <span>Pending Users</span>
+                            </span>
+                            {pendingCount > 0 && (
+                                <span className="text-xs bg-blue-600 text-white rounded-full px-2 py-0.5 leading-none">
+                                    {pendingCount}
+                                </span>
+                            )}
+                        </Link>
+                    )}
                 </nav>
 
                 {/* Логаут */}

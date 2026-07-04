@@ -22,7 +22,8 @@ export const authService = {
         return result;
     },
 
-    login: async (data: Pick<User, 'email' | 'password'>) => {
+    // Use explicit type for login payload to avoid TypeScript errors if User doesn't include 'password'
+    login: async (data: { email: string; password: string }) => {
         const response = await fetch(`${API_URL}/login`, {
             method: 'POST',
             headers: {
@@ -71,5 +72,67 @@ export const authService = {
         }
 
         return result; // Возвращает массив пользователей [{ id, name, email }, ...]
+    },
+    // --- ПОЛУЧИТЬ СПИСОК ЗАЯВОК НА РЕГИСТРАЦИЮ (pending) ---
+    getPendingUsers: async () => {
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(`${BASE_API_URL}/admin/pending-users`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || 'Failed to fetch pending users');
+        }
+
+        return result;
+    },
+
+    // --- ОДОБРИТЬ ПОЛЬЗОВАТЕЛЯ ---
+    approveUser: async (id: number) => {
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(`${BASE_API_URL}/admin/approve/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || 'Failed to approve user');
+        }
+
+        return result;
+    },
+
+    // --- ОТКЛОНИТЬ ПОЛЬЗОВАТЕЛЯ ---
+    rejectUser: async (id: number) => {
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(`${BASE_API_URL}/admin/reject/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || 'Failed to reject user');
+        }
+
+        return result;
     }
 };
