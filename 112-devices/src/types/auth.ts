@@ -17,3 +17,10 @@ export interface PendingUser {
   email: string;
   createdAt: string;
 }
+
+export interface RegisterPayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+}

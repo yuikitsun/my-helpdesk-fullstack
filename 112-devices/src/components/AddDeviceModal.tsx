@@ -53,7 +53,6 @@ export function AddDeviceModal({ isOpen, onClose, onDeviceAdded }: AddDeviceModa
         e.preventDefault();
         setLoading(true);
 
-        // 1. Формируем объект СТРОГО без слипшихся полей и с прокидыванием undefined для пустых строк
         const finalData = {
             name: formData.name,
             owner: formData.owner,
@@ -68,17 +67,14 @@ export function AddDeviceModal({ isOpen, onClose, onDeviceAdded }: AddDeviceModa
             } : undefined
         };
 
-        // 2. Функция отправки
         try {
             const response = await deviceService.addDevice(finalData as any);
 
-            // Заменили response.name на response.title, чтобы не выбивало "undefined"
             alertService.success(`Device "${response.name || formData.name}" successfully added!`);
 
             onDeviceAdded();
             onClose();
 
-            // Сбрасываем форму в дефолт
             setFormData({
                 name: "",
                 owner: "",
@@ -103,7 +99,7 @@ export function AddDeviceModal({ isOpen, onClose, onDeviceAdded }: AddDeviceModa
             <div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
 
                 {/* Шапка */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-100">
                     <div>
                         <h2 className="text-lg font-semibold text-slate-900">Add new asset</h2>
                         <p className="text-xs text-slate-500 mt-0.5">Fill in the details to register a new item in the system.</p>
@@ -112,14 +108,14 @@ export function AddDeviceModal({ isOpen, onClose, onDeviceAdded }: AddDeviceModa
                         type="button"
                         onClick={onClose}
                         disabled={loading}
-                        className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-50"
+                        className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-50 shrink-0"
                     >
                         <X className="size-4" />
                     </button>
                 </div>
 
                 {/* Форма */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto">
 
                     {/* Device Name */}
                     <div className="space-y-1.5">
@@ -136,24 +132,17 @@ export function AddDeviceModal({ isOpen, onClose, onDeviceAdded }: AddDeviceModa
                     </div>
 
                     {/* Device Type & Status */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-slate-700">Category</label>
-                            <select
-                                value={formData.type}
+                            <input
+                                type="text"
                                 disabled={loading}
+                                placeholder="e.g. Laptop, Server, Furniture"
+                                value={formData.type}
                                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 bg-white disabled:opacity-60"
-                            >
-                                <option value="Laptop">Laptop</option>
-                                <option value="Desktop">Desktop</option>
-                                <option value="Server">Server</option>
-                                <option value="Smartphone">Smartphone</option>
-                                <option value="Tablet">Tablet</option>
-                                <option value="Furniture">Furniture (Столы/Стулья)</option>
-                                <option value="Network">Network Equipment</option>
-                                <option value="Other">Other Asset</option>
-                            </select>
+                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 placeholder:text-slate-400 bg-slate-50/50 disabled:opacity-60"
+                            />
                         </div>
 
                         <div className="space-y-1.5">
@@ -203,35 +192,37 @@ export function AddDeviceModal({ isOpen, onClose, onDeviceAdded }: AddDeviceModa
                         />
                     </div>
 
-                    {/* Показываем CPU/RAM только для ПК/Ноутбуков/Серверов */}
-                    {(formData.type === "Laptop" || formData.type === "Desktop" || formData.type === "Server") && (
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-semibold text-slate-700">CPU Specs</label>
-                                <input
-                                    type="text"
-                                    disabled={loading}
-                                    placeholder="e.g. M2 Pro, Core i7"
-                                    value={formData.cpu}
-                                    onChange={(e) => setFormData({ ...formData, cpu: e.target.value })}
-                                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 placeholder:text-slate-400 bg-slate-50/50 disabled:opacity-60"
-                                />
+                    {/* Показываем CPU/RAM для устройств, похожих на компьютеры */}
+                    {["laptop", "desktop", "server"].some(keyword =>
+                        formData.type.toLowerCase().includes(keyword)
+                    ) && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-slate-700">CPU Specs</label>
+                                    <input
+                                        type="text"
+                                        disabled={loading}
+                                        placeholder="e.g. M2 Pro, Core i7"
+                                        value={formData.cpu}
+                                        onChange={(e) => setFormData({ ...formData, cpu: e.target.value })}
+                                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 placeholder:text-slate-400 bg-slate-50/50 disabled:opacity-60"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-slate-700">RAM Specs</label>
+                                    <input
+                                        type="text"
+                                        disabled={loading}
+                                        placeholder="e.g. 16GB, 32GB"
+                                        value={formData.ram}
+                                        onChange={(e) => setFormData({ ...formData, ram: e.target.value })}
+                                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 placeholder:text-slate-400 bg-slate-50/50 disabled:opacity-60"
+                                    />
+                                </div>
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-semibold text-slate-700">RAM Specs</label>
-                                <input
-                                    type="text"
-                                    disabled={loading}
-                                    placeholder="e.g. 16GB, 32GB"
-                                    value={formData.ram}
-                                    onChange={(e) => setFormData({ ...formData, ram: e.target.value })}
-                                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 placeholder:text-slate-400 bg-slate-50/50 disabled:opacity-60"
-                                />
-                            </div>
-                        </div>
-                    )}
+                        )}
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-slate-700">Location</label>
                             <input
@@ -257,7 +248,7 @@ export function AddDeviceModal({ isOpen, onClose, onDeviceAdded }: AddDeviceModa
                     </div>
 
                     {/* Кнопки */}
-                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
                         <button
                             type="button"
                             onClick={onClose}

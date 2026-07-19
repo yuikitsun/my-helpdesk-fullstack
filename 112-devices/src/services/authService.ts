@@ -1,10 +1,10 @@
-import { User } from "../types/auth";
+import { RegisterPayload, User } from "../types/auth";
 
 const API_URL = 'http://localhost:5000/api/auth';
 const BASE_API_URL = 'http://localhost:5000/api'; // Базовый URL для остальных эндпоинтов
 
 export const authService = {
-    register: async (data: User) => {
+    register: async (data: RegisterPayload) => {
         const response = await fetch(`${API_URL}/register`, {
             method: 'POST',
             headers: {

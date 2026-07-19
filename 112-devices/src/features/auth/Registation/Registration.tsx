@@ -98,7 +98,7 @@ export function Register() {
         formData.password.length >= 8;
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-0">
+        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
             <Card className="w-full max-w-lg p-2">
                 <CardHeader className="space-y-1 text-center">
                     <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-blue-600">

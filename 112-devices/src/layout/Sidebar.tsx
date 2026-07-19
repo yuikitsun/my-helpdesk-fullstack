@@ -1,4 +1,4 @@
-import { Server, Bell, Smartphone, LogOut, Clock } from "lucide-react";
+import { Server, Bell, Smartphone, LogOut, Clock, X } from "lucide-react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { authService } from "../services/authService";
@@ -11,6 +11,7 @@ const navItems = [
 
 interface AppSidebarProps {
     isOpen: boolean;
+    onClose: () => void;
 }
 
 function getUserRole(): string | null {
@@ -24,7 +25,7 @@ function getUserRole(): string | null {
     }
 }
 
-export function AppSidebar({ isOpen }: AppSidebarProps) {
+export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
     const navigate = useNavigate();
     const location = useLocation();
     const role = getUserRole();
@@ -33,18 +34,23 @@ export function AppSidebar({ isOpen }: AppSidebarProps) {
 
     useEffect(() => {
         if (!isAdmin) return;
-
         async function loadCount() {
             try {
                 const pending = await authService.getPendingUsers();
                 setPendingCount(pending.length);
             } catch {
-                // тихо игнорируем — счётчик не критичен для работы страницы
+                // тихо игнорируем
             }
         }
-
         loadCount();
     }, [isAdmin]);
+
+    // Закрываем сайдбар на мобиле при переходе по ссылке (иначе оверлей остаётся висеть)
+    function handleNavClick() {
+        if (window.innerWidth < 768) {
+            onClose();
+        }
+    }
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -53,30 +59,39 @@ export function AppSidebar({ isOpen }: AppSidebarProps) {
 
     return (
         <aside
-            className={`border-r border-slate-200 bg-white flex flex-col h-screen sticky top-0 transition-all duration-300 ease-in-out overflow-hidden shrink-0 ${isOpen ? "w-64" : "w-0 border-r-0"
-                }`}
+            className={`
+                fixed md:sticky top-0 left-0 z-50
+                border-r border-slate-200 bg-white flex flex-col h-screen
+                transition-all duration-300 ease-in-out overflow-hidden shrink-0
+                ${isOpen ? "w-64" : "w-0 md:w-0 border-r-0"}
+            `}
         >
             <div className="w-64 flex flex-col h-full">
-                {/* Логотип */}
-                <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-5">
-                    <div className="rounded-lg bg-blue-600 p-2 flex items-center justify-center text-white">
-                        <Server className="size-5" />
+                {/* Логотип + кнопка закрытия на мобиле */}
+                <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+                    <div className="flex items-center gap-3">
+                        <div className="rounded-lg bg-blue-600 p-2 flex items-center justify-center text-white">
+                            <Server className="size-5" />
+                        </div>
+                        <div>
+                            <h2 className="text-slate-950 text-l leading-none mb-1">HelpDesk Pro</h2>
+                            <p className="text-xs text-slate-500 font-medium">IT Management</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className=" text-slate-950 text-l leading-none mb-1">HelpDesk Pro</h2>
-                        <p className="text-xs text-slate-500 font-medium">IT Management</p>
-                    </div>
+                    <button onClick={onClose} className="md:hidden p-1 text-slate-400 hover:text-slate-600">
+                        <X className="size-5" />
+                    </button>
                 </div>
 
                 {/* Навигация */}
                 <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
                     {navItems.map((item, index) => {
                         const isActive = location.pathname === item.path;
-
                         return (
                             <Link
                                 key={index}
                                 to={item.path}
+                                onClick={handleNavClick}
                                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 ${isActive
                                     ? "bg-blue-50 text-blue-600"
                                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
@@ -91,6 +106,7 @@ export function AppSidebar({ isOpen }: AppSidebarProps) {
                     {isAdmin && (
                         <Link
                             to="/admin/pending-users"
+                            onClick={handleNavClick}
                             className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 ${location.pathname === "/admin/pending-users"
                                 ? "bg-blue-50 text-blue-600"
                                 : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"

@@ -1,4 +1,4 @@
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, Menu } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { getInitials } from "../lib/utils"; // Проверь путь до твоего utils.ts
 
@@ -20,22 +20,27 @@ export function Header({ toggleSidebar }: HeaderProps) {
         subtitle: "Manage and monitor all IT assets",
     };
 
-    // Достаем имя, сохраненное при логине, или берем дефолтное
     const userFullName = localStorage.getItem("userFullName") || "Admin";
     const initials = getInitials(userFullName);
 
     return (
-        <header className="flex items-center justify-between border-b border-slate-200 px-6 py-5 bg-white">
-            <div className="flex items-center gap-4">
-                <div>
-                    <h1 className="text-l text-slate-950 tracking-tight leading-tight">{title}</h1>
-                    <p className="text-sm text-slate-500 font-medium">{subtitle}</p>
+        <header className="flex items-center justify-between border-b border-slate-200 px-4 md:px-6 py-4 md:py-5 bg-white">
+            <div className="flex items-center gap-3 min-w-0">
+                {/* Бургер-кнопка — видна только на мобиле */}
+                <button
+                    onClick={toggleSidebar}
+                    className="md:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg shrink-0"
+                >
+                    <Menu className="size-5" />
+                </button>
+                <div className="min-w-0">
+                    <h1 className="text-l text-slate-950 tracking-tight leading-tight truncate">{title}</h1>
+                    <p className="text-sm text-slate-500 font-medium truncate hidden sm:block">{subtitle}</p>
                 </div>
             </div>
 
-            {/* Правая часть: Поиск, Уведомления, Чистый Аватар с новыми инициалами */}
-            <div className="flex items-center gap-2">
-                <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">
+            <div className="flex items-center gap-1 md:gap-2 shrink-0">
+                <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors hidden sm:block">
                     <Search className="size-5" />
                 </button>
                 <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors relative">
@@ -43,9 +48,8 @@ export function Header({ toggleSidebar }: HeaderProps) {
                     <span className="absolute top-2 right-2 size-2 bg-red-500 rounded-full" />
                 </button>
 
-                <div className="h-5 w-px bg-slate-200 mx-2" />
+                <div className="h-5 w-px bg-slate-200 mx-1 md:mx-2 hidden sm:block" />
 
-                {/* Выводим сгенерированные инициалы */}
                 <div
                     className="flex items-center justify-center size-9 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-sm select-none"
                     title={userFullName}
